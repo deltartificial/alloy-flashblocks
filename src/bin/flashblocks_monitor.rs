@@ -90,7 +90,7 @@ async fn stream_flashblocks(block_stats: BlockStatsMap) -> Result<()> {
                 let flashblock: Flashblock = serde_json::from_str(&text)?;
                 process_flashblock(&flashblock, &block_stats).await?;
             }
-            Ok(Message::Binary(_)) => warn!("Received binary message"),
+            Ok(Message::Binary(_)) => warn!("Received binary message: {:?}", msg),
             Ok(Message::Ping(_)) => debug!("Received ping"),
             Ok(Message::Pong(_)) => debug!("Received pong"),
             Ok(Message::Frame(_)) => debug!("Received frame"),
