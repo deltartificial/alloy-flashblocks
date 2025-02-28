@@ -5,6 +5,15 @@ use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
 
+fn hex_to_decimal(hex: &str) -> String {
+    if let Some(hex_value) = hex.strip_prefix("0x") {
+        if let Ok(value) = u64::from_str_radix(hex_value, 16) {
+            return value.to_string();
+        }
+    }
+    hex.to_string()
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt::init();
@@ -29,7 +38,11 @@ async fn main() -> Result<()> {
                 if flashblock.index == 0 {
                     block_count += 1;
                     info!("\nNew block started (#{}/{})", block_count, max_blocks);
-                    info!("Payload ID: {}", flashblock.payload_id);
+                    info!(
+                        "Payload ID: {} ({})",
+                        flashblock.payload_id,
+                        hex_to_decimal(&flashblock.payload_id)
+                    );
 
                     if let Some(base) = &flashblock.base {
                         if let Some(hex) = base.block_number.strip_prefix("0x") {
@@ -43,8 +56,10 @@ async fn main() -> Result<()> {
                     }
                 } else {
                     info!(
-                        "\nDiff update #{} for payload {}",
-                        flashblock.index, flashblock.payload_id
+                        "\nDiff update #{} for payload {} ({})",
+                        flashblock.index,
+                        flashblock.payload_id,
+                        hex_to_decimal(&flashblock.payload_id)
                     );
 
                     if let Some(txs) = &flashblock.diff.transactions {
@@ -52,7 +67,7 @@ async fn main() -> Result<()> {
                     }
 
                     if let Some(gas_used) = &flashblock.diff.gas_used {
-                        info!("Gas used: {}", gas_used);
+                        info!("Gas used: {}", hex_to_decimal(gas_used));
                     }
 
                     if let Some(block_hash) = &flashblock.diff.block_hash {
@@ -84,7 +99,11 @@ async fn main() -> Result<()> {
                     if flashblock.index == 0 {
                         block_count += 1;
                         info!("\nNew block started (#{}/{})", block_count, max_blocks);
-                        info!("Payload ID: {}", flashblock.payload_id);
+                        info!(
+                            "Payload ID: {} ({})",
+                            flashblock.payload_id,
+                            hex_to_decimal(&flashblock.payload_id)
+                        );
 
                         if let Some(base) = &flashblock.base {
                             if let Some(hex) = base.block_number.strip_prefix("0x") {
@@ -98,8 +117,10 @@ async fn main() -> Result<()> {
                         }
                     } else {
                         info!(
-                            "\nDiff update #{} for payload {}",
-                            flashblock.index, flashblock.payload_id
+                            "\nDiff update #{} for payload {} ({})",
+                            flashblock.index,
+                            flashblock.payload_id,
+                            hex_to_decimal(&flashblock.payload_id)
                         );
 
                         if let Some(txs) = &flashblock.diff.transactions {
@@ -107,7 +128,7 @@ async fn main() -> Result<()> {
                         }
 
                         if let Some(gas_used) = &flashblock.diff.gas_used {
-                            info!("Gas used: {}", gas_used);
+                            info!("Gas used: {}", hex_to_decimal(gas_used));
                         }
 
                         if let Some(block_hash) = &flashblock.diff.block_hash {

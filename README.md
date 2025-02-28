@@ -29,6 +29,8 @@ The main binary provides several commands:
 cargo run --bin alloy-flashblocks stream
 cargo run --bin alloy-flashblocks stream --blocks 10
 
+cargo run --bin flashblocks-ws -- stream --blocks 50
+
 # Query the latest flashblock
 cargo run --bin alloy-flashblocks query-latest
 
