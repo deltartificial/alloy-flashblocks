@@ -2,6 +2,8 @@
 
 A Rust implementation for interacting with Base's Flashblocks service. Provides WebSocket streaming, monitoring, and RPC functionality for real-time block data, using Alloy.
 
+![Flashblocks Monitor](assets/image.png)
+
 ## Features
 
 - WebSocket streaming of Flashblocks data
