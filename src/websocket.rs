@@ -82,13 +82,17 @@ impl FlashblocksWsClient {
         while let Some(msg) = read.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    let flashblock: Flashblock = serde_json::from_str(&text)
-                        .wrap_err("Failed to parse Flashblock")?;
+                    let flashblock: Flashblock =
+                        serde_json::from_str(&text).wrap_err("Failed to parse Flashblock")?;
 
-                    self.handle_flashblock(&flashblock, &mut block_count).await?;
+                    self.handle_flashblock(&flashblock, &mut block_count)
+                        .await?;
 
                     if block_count >= self.max_blocks && flashblock.is_initial() {
-                        info!("\nReached maximum block count ({}), exiting", self.max_blocks);
+                        info!(
+                            "\nReached maximum block count ({}), exiting",
+                            self.max_blocks
+                        );
                         break;
                     }
                 }
@@ -100,27 +104,29 @@ impl FlashblocksWsClient {
                     info!("WebSocket connection closed by server");
                     break;
                 }
-                Err(e) => {
-                    match e {
-                        WsError::Protocol(_) | WsError::Utf8 => {
-                            warn!("WebSocket protocol error: {}", e);
-                            continue;
-                        }
-                        _ => return Err(e.into()),
+                Err(e) => match e {
+                    WsError::Protocol(_) | WsError::Utf8 => {
+                        warn!("WebSocket protocol error: {}", e);
+                        continue;
                     }
-                }
+                    _ => return Err(e.into()),
+                },
             }
         }
 
         Ok(())
     }
 
-    async fn handle_flashblock(&self, flashblock: &Flashblock, block_count: &mut usize) -> Result<()> {
+    async fn handle_flashblock(
+        &self,
+        flashblock: &Flashblock,
+        block_count: &mut usize,
+    ) -> Result<()> {
         if flashblock.is_initial() {
             *block_count += 1;
             info!("\nNew block started (#{}/{})", block_count, self.max_blocks);
             info!("Payload ID: {}", flashblock.payload_id);
-            
+
             if let Some(base) = &flashblock.base {
                 if let Some(number) = flashblock.block_number() {
                     info!("Block number: {}", number);
@@ -130,17 +136,20 @@ impl FlashblocksWsClient {
                 info!("Base fee: {} wei", base.base_fee_per_gas);
             }
         } else {
-            info!("\nDiff update #{} for payload {}", flashblock.index, flashblock.payload_id);
-            
+            info!(
+                "\nDiff update #{} for payload {}",
+                flashblock.index, flashblock.payload_id
+            );
+
             let tx_count = flashblock.transaction_count();
             if tx_count > 0 {
                 info!("New transactions: {}", tx_count);
             }
-            
+
             if let Some(gas_used) = &flashblock.diff.gas_used {
                 info!("Gas used: {}", gas_used);
             }
-            
+
             if let Some(block_hash) = &flashblock.diff.block_hash {
                 info!("Block hash: {}", block_hash);
             }
@@ -165,4 +174,4 @@ impl FlashblocksWsClient {
             }
         }
     }
-} 
+}

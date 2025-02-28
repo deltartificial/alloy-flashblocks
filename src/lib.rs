@@ -6,4 +6,4 @@ pub mod websocket;
 pub use cli::*;
 pub use rpc::*;
 pub use types::*;
-pub use websocket::*; 
+pub use websocket::*;

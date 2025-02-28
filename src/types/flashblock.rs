@@ -55,4 +55,4 @@ impl Flashblock {
     pub fn is_initial(&self) -> bool {
         self.index == 0
     }
-} 
+}

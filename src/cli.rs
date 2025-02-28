@@ -20,4 +20,4 @@ pub enum Commands {
     GetReceipt {
         tx_hash: String,
     },
-} 
+}

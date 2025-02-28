@@ -33,4 +33,4 @@ pub struct JsonRpcError {
     pub code: i32,
     pub message: String,
     pub data: Option<Value>,
-} 
+}

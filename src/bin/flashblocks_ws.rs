@@ -1,3 +1,4 @@
+use alloy_flashblocks::types::Flashblock;
 use eyre::Result;
 use futures_util::StreamExt;
 use serde::Deserialize;
@@ -6,41 +7,41 @@ use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
 
-#[derive(Debug, Deserialize)]
-struct FlashblockBase {
-    parent_hash: String,
-    fee_recipient: String,
-    block_number: String,
-    gas_limit: String,
-    timestamp: String,
-    base_fee_per_gas: String,
-}
+// #[derive(Debug, Deserialize)]
+// struct FlashblockBase {
+//     parent_hash: String,
+//     fee_recipient: String,
+//     block_number: String,
+//     gas_limit: String,
+//     timestamp: String,
+//     base_fee_per_gas: String,
+// }
 
-#[derive(Debug, Deserialize)]
-struct FlashblockDiff {
-    state_root: Option<String>,
-    block_hash: Option<String>,
-    gas_used: Option<String>,
-    transactions: Option<Vec<String>>,
-    withdrawals: Option<Vec<Value>>,
-}
+// #[derive(Debug, Deserialize)]
+// struct FlashblockDiff {
+//     state_root: Option<String>,
+//     block_hash: Option<String>,
+//     gas_used: Option<String>,
+//     transactions: Option<Vec<String>>,
+//     withdrawals: Option<Vec<Value>>,
+// }
 
-#[derive(Debug, Deserialize)]
-struct FlashblockMetadata {
-    block_number: Option<u64>,
-    new_account_balances: Option<Value>,
-    receipts: Option<Value>,
-}
+// #[derive(Debug, Deserialize)]
+// struct FlashblockMetadata {
+//     block_number: Option<u64>,
+//     new_account_balances: Option<Value>,
+//     receipts: Option<Value>,
+// }
 
-#[derive(Debug, Deserialize)]
-struct Flashblock {
-    payload_id: String,
-    index: u64,
-    #[serde(default)]
-    base: Option<FlashblockBase>,
-    diff: FlashblockDiff,
-    metadata: FlashblockMetadata,
-}
+// #[derive(Debug, Deserialize)]
+// struct Flashblock {
+//     payload_id: String,
+//     index: u64,
+//     #[serde(default)]
+//     base: Option<FlashblockBase>,
+//     diff: FlashblockDiff,
+//     metadata: FlashblockMetadata,
+// }
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -56,24 +57,18 @@ async fn main() -> Result<()> {
 
     info!("Awaiting Flashblocks...");
     let mut block_count = 0;
-    let max_blocks = 5; 
+    let max_blocks = 5;
 
     while let Some(msg) = read.next().await {
         match msg {
             Ok(Message::Text(text)) => {
-                let flashblock: Flashblock = match serde_json::from_str(&text) {
-                    Ok(block) => block,
-                    Err(e) => {
-                        error!("Failed to parse Flashblock: {}", e);
-                        continue;
-                    }
-                };
+                let flashblock: Flashblock = serde_json::from_str(&text)?;
 
                 if flashblock.index == 0 {
                     block_count += 1;
                     info!("\nNew block started (#{}/{})", block_count, max_blocks);
                     info!("Payload ID: {}", flashblock.payload_id);
-                    
+
                     if let Some(base) = &flashblock.base {
                         if let Some(hex) = base.block_number.strip_prefix("0x") {
                             if let Ok(number) = u64::from_str_radix(hex, 16) {
@@ -85,16 +80,19 @@ async fn main() -> Result<()> {
                         info!("Base fee: {} wei", base.base_fee_per_gas);
                     }
                 } else {
-                    info!("\nDiff update #{} for payload {}", flashblock.index, flashblock.payload_id);
-                    
+                    info!(
+                        "\nDiff update #{} for payload {}",
+                        flashblock.index, flashblock.payload_id
+                    );
+
                     if let Some(txs) = &flashblock.diff.transactions {
                         info!("New transactions: {}", txs.len());
                     }
-                    
+
                     if let Some(gas_used) = &flashblock.diff.gas_used {
                         info!("Gas used: {}", gas_used);
                     }
-                    
+
                     if let Some(block_hash) = &flashblock.diff.block_hash {
                         info!("Block hash: {}", block_hash);
                     }
@@ -122,7 +120,7 @@ async fn main() -> Result<()> {
             Ok(Message::Binary(_)) => warn!("Received unexpected binary message"),
             Ok(Message::Ping(_)) => debug!("Received ping"),
             Ok(Message::Pong(_)) => debug!("Received pong"),
-            Ok(Message::Frame(_)) => debug!("Received raw frame"),
+            Ok(Message::Frame(_)) => debug!("Received frame"),
             Ok(Message::Close(_)) => {
                 info!("WebSocket connection closed by server");
                 break;
@@ -135,4 +133,4 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
-} 
+}

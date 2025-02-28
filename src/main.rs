@@ -1,4 +1,7 @@
-use alloy_flashblocks::{cli::{Cli, Commands}, FlashblocksRpcClient, FlashblocksWsClient};
+use alloy_flashblocks::{
+    cli::{Cli, Commands},
+    FlashblocksRpcClient, FlashblocksWsClient,
+};
 use clap::Parser;
 use eyre::Result;
 use std::time::Duration;
