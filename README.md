@@ -20,22 +20,34 @@ cargo build --release
 
 ## Usage
 
-### WebSocket Client
-Stream raw Flashblocks data:
+The main binary provides several commands:
+
 ```bash
-cargo run --bin flashblocks_ws
+# Stream blocks (default: 5 blocks)
+cargo run --bin alloy-flashblocks stream
+cargo run --bin alloy-flashblocks stream --blocks 10
+
+# Query the latest flashblock
+cargo run --bin alloy-flashblocks query-latest
+
+# Get balance for an address
+cargo run --bin alloy-flashblocks get-balance <ADDRESS>
+
+# Get receipt for a transaction
+cargo run --bin alloy-flashblocks get-receipt <TX_HASH>
 ```
 
-### Block Monitor
-Monitor blocks with detailed statistics:
-```bash
-cargo run --bin flashblocks_monitor
-```
+Additional monitoring tools are available:
 
-### RPC Client
-Query blockchain data:
 ```bash
-cargo run --bin flashblocks_rpc
+# Run the detailed block monitor
+cargo run --bin flashblocks-monitor
+
+# Run the WebSocket client
+cargo run --bin flashblocks-ws
+
+# Run the transaction submitter
+cargo run --bin tx_submitter
 ```
 
 ## Configuration
