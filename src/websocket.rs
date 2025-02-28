@@ -80,7 +80,7 @@ impl FlashblocksWsClient {
         info!("Sent subscription request");
 
         let mut block_count = 0;
-        info!("Awaiting Flashblocks...");
+        info!("Awaiting Flashblocks... hi");
 
         while let Some(msg) = ws_stream.next().await {
             match msg {

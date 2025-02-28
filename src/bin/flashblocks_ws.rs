@@ -79,7 +79,63 @@ async fn main() -> Result<()> {
                     break;
                 }
             }
-            Ok(Message::Binary(_)) => warn!("Received unexpected binary message"),
+            Ok(Message::Binary(binary)) => match serde_json::from_slice::<Flashblock>(&binary) {
+                Ok(flashblock) => {
+                    if flashblock.index == 0 {
+                        block_count += 1;
+                        info!("\nNew block started (#{}/{})", block_count, max_blocks);
+                        info!("Payload ID: {}", flashblock.payload_id);
+
+                        if let Some(base) = &flashblock.base {
+                            if let Some(hex) = base.block_number.strip_prefix("0x") {
+                                if let Ok(number) = u64::from_str_radix(hex, 16) {
+                                    info!("Block number: {}", number);
+                                }
+                            }
+                            info!("Parent hash: {}", base.parent_hash);
+                            info!("Gas limit: {}", base.gas_limit);
+                            info!("Base fee: {} wei", base.base_fee_per_gas);
+                        }
+                    } else {
+                        info!(
+                            "\nDiff update #{} for payload {}",
+                            flashblock.index, flashblock.payload_id
+                        );
+
+                        if let Some(txs) = &flashblock.diff.transactions {
+                            info!("New transactions: {}", txs.len());
+                        }
+
+                        if let Some(gas_used) = &flashblock.diff.gas_used {
+                            info!("Gas used: {}", gas_used);
+                        }
+
+                        if let Some(block_hash) = &flashblock.diff.block_hash {
+                            info!("Block hash: {}", block_hash);
+                        }
+                    }
+
+                    if let Some(balances) = &flashblock.metadata.new_account_balances {
+                        let balance_count = balances.as_object().map_or(0, |obj| obj.len());
+                        if balance_count > 0 {
+                            info!("Updated balances for {} accounts", balance_count);
+                        }
+                    }
+
+                    if let Some(receipts) = &flashblock.metadata.receipts {
+                        let receipt_count = receipts.as_object().map_or(0, |obj| obj.len());
+                        if receipt_count > 0 {
+                            info!("New receipts: {}", receipt_count);
+                        }
+                    }
+
+                    if block_count >= max_blocks && flashblock.index == 0 {
+                        info!("\nReached maximum block count ({}), exiting", max_blocks);
+                        break;
+                    }
+                }
+                Err(e) => error!("Failed to parse binary message: {}", e),
+            },
             Ok(Message::Ping(_)) => debug!("Received ping"),
             Ok(Message::Pong(_)) => debug!("Received pong"),
             Ok(Message::Frame(_)) => debug!("Received frame"),
