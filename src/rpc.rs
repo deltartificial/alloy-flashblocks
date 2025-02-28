@@ -2,9 +2,7 @@ use alloy::{
     network::Ethereum,
     primitives::Address,
     providers::{Provider, ProviderBuilder},
-    transports::HttpError,
 };
-use alloy_transport_http::Http;
 use eyre::Result;
 use serde_json::{json, Value};
 use std::{borrow::Cow, time::Duration};

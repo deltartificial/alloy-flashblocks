@@ -1,10 +1,10 @@
-use alloy::primitives::{Address, U256};
+use alloy::primitives::Address;
 use alloy::providers::{Provider, ProviderBuilder};
 use eyre::Result;
 use std::str::FromStr;
 use std::time::Duration;
 use tokio::time;
-use tracing::{error, info};
+use tracing::info;
 use url::Url;
 
 #[tokio::main]

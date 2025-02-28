@@ -4,8 +4,6 @@ use alloy_flashblocks::{
 };
 use clap::Parser;
 use eyre::Result;
-use std::time::Duration;
-use tracing::info;
 use url::Url;
 
 #[tokio::main]

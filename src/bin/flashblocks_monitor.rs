@@ -9,6 +9,7 @@ use tracing::{debug, error, info, warn};
 use url::Url;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct BlockStats {
     block_number: u64,
     payload_id: String,

@@ -1,47 +1,9 @@
 use alloy_flashblocks::types::Flashblock;
 use eyre::Result;
 use futures_util::StreamExt;
-use serde::Deserialize;
-use serde_json::Value;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use tracing::{debug, error, info, warn};
 use url::Url;
-
-// #[derive(Debug, Deserialize)]
-// struct FlashblockBase {
-//     parent_hash: String,
-//     fee_recipient: String,
-//     block_number: String,
-//     gas_limit: String,
-//     timestamp: String,
-//     base_fee_per_gas: String,
-// }
-
-// #[derive(Debug, Deserialize)]
-// struct FlashblockDiff {
-//     state_root: Option<String>,
-//     block_hash: Option<String>,
-//     gas_used: Option<String>,
-//     transactions: Option<Vec<String>>,
-//     withdrawals: Option<Vec<Value>>,
-// }
-
-// #[derive(Debug, Deserialize)]
-// struct FlashblockMetadata {
-//     block_number: Option<u64>,
-//     new_account_balances: Option<Value>,
-//     receipts: Option<Value>,
-// }
-
-// #[derive(Debug, Deserialize)]
-// struct Flashblock {
-//     payload_id: String,
-//     index: u64,
-//     #[serde(default)]
-//     base: Option<FlashblockBase>,
-//     diff: FlashblockDiff,
-//     metadata: FlashblockMetadata,
-// }
 
 #[tokio::main]
 async fn main() -> Result<()> {
