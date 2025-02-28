@@ -62,7 +62,8 @@ impl FlashblocksWsClient {
     }
 
     async fn connect_and_stream(&self) -> Result<()> {
-        let (ws_stream, _) = connect_async(&self.url)
+        let url_str = self.url.as_str();
+        let (ws_stream, _) = connect_async(url_str)
             .await
             .wrap_err("Failed to connect to WebSocket")?;
         info!("WebSocket connection established");

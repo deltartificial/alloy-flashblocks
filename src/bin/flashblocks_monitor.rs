@@ -77,7 +77,7 @@ async fn stream_flashblocks(block_stats: BlockStatsMap) -> Result<()> {
     let ws_url = Url::parse("wss://sepolia.flashblocks.base.org/ws")?;
     info!("Connecting to Flashblocks WebSocket at {}", ws_url);
 
-    let (ws_stream, _) = connect_async(ws_url).await?;
+    let (ws_stream, _) = connect_async(ws_url.as_str()).await?;
     info!("WebSocket connection established");
 
     let (_, mut read) = ws_stream.split();
