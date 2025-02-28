@@ -2,13 +2,12 @@ use crate::types::Flashblock;
 use eyre::{Result, WrapErr};
 use futures_util::{SinkExt, StreamExt};
 use std::time::Duration;
-use tokio::{net::TcpStream, time};
+use tokio::time;
 use tokio_tungstenite::{
     connect_async,
     tungstenite::{protocol::Message, Error as WsError},
-    MaybeTlsStream, WebSocketStream,
 };
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 use url::Url;
 
 pub struct FlashblocksWsClient {
@@ -67,7 +66,6 @@ impl FlashblocksWsClient {
             .wrap_err("Failed to establish WebSocket connection")?;
         info!("WebSocket connection established");
 
-        // Send initialization message
         let init_msg = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "subscribe",
@@ -75,7 +73,8 @@ impl FlashblocksWsClient {
             "id": 1
         });
         let init_str = init_msg.to_string();
-        ws_stream.send(Message::Text(init_str.as_str().into()))
+        ws_stream
+            .send(Message::Text(init_str.as_str().into()))
             .await
             .wrap_err("Failed to send subscription request")?;
         info!("Sent subscription request");
@@ -85,63 +84,67 @@ impl FlashblocksWsClient {
 
         while let Some(msg) = ws_stream.next().await {
             match msg {
-                Ok(Message::Text(text)) => {
-                    match serde_json::from_str::<serde_json::Value>(&text) {
-                        Ok(json) => {
-                            // Check for JSON-RPC error response
-                            if let Some(error) = json.get("error") {
-                                error!("Received JSON-RPC error: {}", error);
-                                continue;
-                            }
+                Ok(Message::Text(text)) => match serde_json::from_str::<serde_json::Value>(&text) {
+                    Ok(json) => {
+                        if let Some(error) = json.get("error") {
+                            error!("Received JSON-RPC error: {}", error);
+                            continue;
+                        }
 
-                            // Try to parse as Flashblock
-                            match serde_json::from_value::<Flashblock>(json.clone()) {
-                                Ok(flashblock) => {
-                                    self.handle_flashblock(&flashblock, &mut block_count).await?;
+                        match serde_json::from_value::<Flashblock>(json.clone()) {
+                            Ok(flashblock) => {
+                                self.handle_flashblock(&flashblock, &mut block_count)
+                                    .await?;
+                                if block_count >= self.max_blocks && flashblock.is_initial() {
+                                    info!(
+                                        "\nReached maximum block count ({}), exiting",
+                                        self.max_blocks
+                                    );
+                                    break;
+                                }
+                            }
+                            Err(e) => {
+                                debug!("Not a Flashblock message: {}", e);
+                                debug!("Raw message: {}", text);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        error!("Failed to parse message as JSON: {}", e);
+                        error!("Raw message: {}", text);
+                    }
+                },
+                Ok(Message::Binary(data)) => match String::from_utf8(data.to_vec()) {
+                    Ok(text) => {
+                        debug!("Received binary message: {}", text);
+                        match serde_json::from_str::<serde_json::Value>(&text) {
+                            Ok(json) => {
+                                if let Ok(flashblock) =
+                                    serde_json::from_value::<Flashblock>(json.clone())
+                                {
+                                    self.handle_flashblock(&flashblock, &mut block_count)
+                                        .await?;
                                     if block_count >= self.max_blocks && flashblock.is_initial() {
-                                        info!("\nReached maximum block count ({}), exiting", self.max_blocks);
+                                        info!(
+                                            "\nReached maximum block count ({}), exiting",
+                                            self.max_blocks
+                                        );
                                         break;
                                     }
                                 }
-                                Err(e) => {
-                                    debug!("Not a Flashblock message: {}", e);
-                                    debug!("Raw message: {}", text);
-                                }
+                            }
+                            Err(e) => {
+                                error!("Failed to parse binary message as JSON: {}", e);
                             }
                         }
-                        Err(e) => {
-                            error!("Failed to parse message as JSON: {}", e);
-                            error!("Raw message: {}", text);
-                        }
                     }
-                }
-                Ok(Message::Binary(data)) => {
-                    match String::from_utf8(data.to_vec()) {
-                        Ok(text) => {
-                            debug!("Received binary message: {}", text);
-                            // Process binary message as text
-                            match serde_json::from_str::<serde_json::Value>(&text) {
-                                Ok(json) => {
-                                    if let Ok(flashblock) = serde_json::from_value::<Flashblock>(json.clone()) {
-                                        self.handle_flashblock(&flashblock, &mut block_count).await?;
-                                        if block_count >= self.max_blocks && flashblock.is_initial() {
-                                            info!("\nReached maximum block count ({}), exiting", self.max_blocks);
-                                            break;
-                                        }
-                                    }
-                                }
-                                Err(e) => {
-                                    error!("Failed to parse binary message as JSON: {}", e);
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to decode binary message as UTF-8: {}", e);
-                        }
+                    Err(e) => {
+                        error!("Failed to decode binary message as UTF-8: {}", e);
                     }
-                }
+                },
                 Ok(Message::Ping(data)) => {
-                    ws_stream.send(Message::Pong(data))
+                    ws_stream
+                        .send(Message::Pong(data))
                         .await
                         .wrap_err("Failed to respond to ping")?;
                 }
@@ -151,22 +154,20 @@ impl FlashblocksWsClient {
                     break;
                 }
                 Ok(Message::Frame(_)) => {}
-                Err(e) => {
-                    match e {
-                        WsError::Protocol(p) => {
-                            error!("WebSocket protocol error: {}", p);
-                            break;
-                        }
-                        WsError::ConnectionClosed => {
-                            info!("WebSocket connection closed");
-                            break;
-                        }
-                        _ => {
-                            error!("WebSocket error: {}", e);
-                            break;
-                        }
+                Err(e) => match e {
+                    WsError::Protocol(p) => {
+                        error!("WebSocket protocol error: {}", p);
+                        break;
                     }
-                }
+                    WsError::ConnectionClosed => {
+                        info!("WebSocket connection closed");
+                        break;
+                    }
+                    _ => {
+                        error!("WebSocket error: {}", e);
+                        break;
+                    }
+                },
             }
         }
 
